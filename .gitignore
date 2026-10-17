@@ -1,0 +1,23 @@
+# Build products and downloaded weights
+/build/
+/dist/
+*.spec
+*.exe
+*.onnx
+*.zip
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.test-output/
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+settings.json
+*.log
+# Editor / OS files
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

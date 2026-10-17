@@ -1,0 +1,140 @@
+HEIGHTMAP STUDIO 1.4 — Windows x64 — single-file application with offline and online AI
+
+Run HeightmapStudio.exe. Python, required libraries and the depth model are bundled.
+No Python installation is required. Offline mode needs no internet or account.
+Online mode needs internet access; some services also need your API key.
+On startup the EXE extracts its components into the Windows temporary folder.
+
+
+ONLINE AI — OPTIONAL
+Choose a service in the AI service list. Only the AI shape/depth mode uses it;
+Brightness and Existing heightmap remain local. Load/select/settings actions do not
+upload the image. Click Generate heightmap to send the resized working copy.
+Original file paths, DPI metadata and the full A3 file are not sent.
+
+Hugging Face: real depth estimation using the public Depth Anything V2 Space.
+Anonymous requests have a free quota and queue limits. Enter an optional HF token
+in Settings to use your account. The default Space worked in our live test.
+Availability, quotas and policies can change. There is no promise of unlimited use.
+An optional owner/space setting supports compatible Spaces exposing /on_submit,
+with the grayscale depth file as the second result.
+
+OpenAI: experimental artistic relief using your own Images API key.
+Gemini: experimental artistic relief using your own AI Studio API key.
+These services can change outlines and details; they are not geometric depth models.
+The input is padded to a square and the returned map is cropped back to the source
+proportions. Inspect alignment before printing. Provider billing, account quotas and
+model access apply. There is no automatic switch to a paid provider or paid retry.
+OpenAI/Gemini account access was not tested with live keys; request/response handling
+was tested using simulated HTTP responses.
+
+Settings / accounts contains separate keys and model names for each service.
+Test connection checks account/Space/model metadata; it never generates an image.
+An accessible model metadata response does not guarantee image-generation permission.
+Use an API key/token, not your account password or chat-subscription login.
+
+Keys remain in memory by default. To save them, explicitly enable Remember keys on
+this PC and click Save settings. Stored keys are protected with Windows DPAPI for
+the current Windows user, in %LOCALAPPDATA%\HeightmapStudio\settings.json.
+Forget saved keys clears stored and in-memory keys. Keys are never built into EXE.
+If the online service fails, choose Offline to continue using the bundled model.
+
+Documentation checked 2026-10-17:
+https://huggingface.co/docs/hub/spaces-zerogpu
+https://huggingface.co/spaces/depth-anything/Depth-Anything-V2
+https://developers.openai.com/api/docs/guides/image-generation
+https://ai.google.dev/gemini-api/docs/image-generation
+https://ai.google.dev/api/interactions-api
+
+SOURCE ZOOM AND PRECISE MANUAL ERASING
+Mouse wheel over SOURCE: zoom toward or away from the cursor.
+Source zoom + / - buttons: zoom around the viewport center.
+Fit: show the whole source. 100%: one original source pixel per viewport pixel.
+Right or middle mouse drag: pan the source in any brush mode.
+In View mode, left mouse drag also pans. In Erase / Restore mode, left drag paints.
+Brush size stays constant on screen: zoom in to erase smaller areas accurately.
+At high magnification, pixels are shown sharply rather than blurred.
+
+Large files: detailed source pixels load from the original file in the background
+when zooming beyond the working preview. This can require additional RAM to decode
+the original image. Only the visible part is rendered at the selected zoom.
+Zooming/panning never regenerates AI depth or uploads an image.
+
+Manual strokes are recorded in original source coordinates. Native-size PNG export
+rasterizes them at original resolution, including erase/restore strokes. Fine erasing
+is not limited to the 2048 px working image. The map preview uses a smaller mask;
+very small erased details are best inspected on the source and in the native export.
+Manual erasing clips the final heightmap; it does not re-estimate the underlying shape.
+Existing alpha and automatic background removal still apply when restoring a manual stroke.
+Undo stroke / Ctrl+Z and Clear manual mask remain available after zoom/pan.
+
+QUICK START
+1. Load image. Color images use local AI automatically.
+2. Compare SOURCE IMAGE and HEIGHTMAP. White means higher; black means zero.
+3. Optionally enable Remove light background and adjust Threshold.
+4. To remove background manually, choose Erase background and paint on SOURCE.
+   Red overlay shows erased areas. Adjust Brush size as needed.
+   Restore mask reverses manual erasing. Undo stroke / Ctrl+Z removes the last stroke.
+   Clear manual mask resets all manual strokes. The source file is never modified.
+   Restore mask does not override automatic background removal or original alpha.
+5. Adjust shape and smoothing. Export PNG at original image dimensions.
+
+MODES
+AI — shape and depth: Depth Anything V2 Small estimates relative shape locally on CPU.
+Brightness — graphic relief: directly maps brightness to height.
+Existing heightmap — no AI: preserves input height levels before manual adjustments.
+Grayscale input automatically selects Existing heightmap. Select AI manually for a
+black-and-white drawing that is not already a heightmap.
+
+CONTROLS
+Height curve / gamma: redistributes low and high regions.
+Smoothing: reduces small variations in the height field.
+Height range: scales maximum output height value.
+Silhouette base: raises the masked silhouette above zero.
+Fine detail: adds a small amount of image texture; excessive values can add color artifacts.
+Silhouette rounding: creates rounded volume from a mask; best with removed or transparent background.
+Invert height: reverses foreground heights while keeping removed background at zero.
+Shaded preview: illustrates shape only; exported data is always the actual heightmap.
+
+EXPORT
+PNG 8-bit: 256 height levels; optional original/manual mask as transparency.
+PNG 16-bit: 65536 height levels, no alpha. Removed background remains zero.
+The source image dimensions, proportions and existing DPI metadata are preserved.
+The image is not cropped. Export cannot overwrite the loaded source file.
+
+LIMITATIONS
+Single-image depth is an approximation, not a physical measurement or a guarantee of
+matching xTool-generated depth maps. Illustrations may need adjustment and test prints.
+The AI runs on a reduced image and interpolates depth back to source dimensions;
+exporting a large PNG does not create real additional geometric detail.
+Set physical relief height in millimeters in your printer software.
+Custom heightmap assignment and 16-bit PNG support depend on the importing software.
+Importing two pictures on top of each other does not automatically link color and depth.
+Review the printer preview and make a small test before a full print.
+Light-background removal uses border-connected light pixels and neutral shadows;
+it may also remove light artwork touching the border. Use manual erasing for difficult backgrounds.
+Large sources: up to 300 million pixels, subject to available RAM. A3 at 600 DPI is supported.
+Loading and export run in the background. Working images are limited to a 2048 px long edge.
+AI and smoothing use the working image. Manual strokes retain original-pixel coordinates.
+Native-size export is written in strips with precise manual masks.
+Physical output dimensions in pixels and existing DPI are preserved. Interpolated AI output does
+not gain geometric detail beyond the working image. Existing maps exported with default settings
+preserve native pixel detail, including 16-bit values. A percentage is shown during large exports.
+
+SHORTCUTS: Ctrl+O load; Ctrl+S export; Ctrl+Z undo manual stroke.
+Startup errors are logged to %LOCALAPPDATA%\HeightmapStudio\error.log.
+
+MODEL / LICENSES
+Depth Anything V2 Small, Apache 2.0, DepthAnything authors.
+ONNX conversion: onnx-community/depth-anything-v2-small,
+revision 4472b7362082ad9968fee890ca0f1e5aca36b93d.
+Python/Tk, NumPy, Pillow, SciPy, ONNX Runtime, PyInstaller, Requests, Gradio Client and Hugging Face Hub.
+The EXE bundles the model license/card and library license metadata.
+The optional source archive contains Python source, pinned requirements, build script
+and model license/card. Run python build.py on Windows after installing requirements.txt;
+the build script downloads the model if it is absent. No source files are needed to run the EXE.
+
+References:
+https://github.com/DepthAnything/Depth-Anything-V2
+https://huggingface.co/onnx-community/depth-anything-v2-small
+https://pyinstaller.org/en/stable/usage.html

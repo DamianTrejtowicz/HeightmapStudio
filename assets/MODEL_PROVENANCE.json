@@ -1,0 +1,7 @@
+{
+  "model_url": "https://huggingface.co/onnx-community/depth-anything-v2-small",
+  "revision": "4472b7362082ad9968fee890ca0f1e5aca36b93d",
+  "model_sha256": "afb6a5c28f3b6bf1618c6e43f02073ef9dfdc70e937502d51603e57b0a1df10c",
+  "model_bytes": 99060839,
+  "license": "Apache-2.0"
+}
