@@ -15,15 +15,16 @@ from dataclasses import dataclass
 import numpy as np
 from PIL import Image, ImageOps, ImageFilter, ImageTk, ImageDraw, ImageChops
 from scipy.ndimage import gaussian_filter, distance_transform_edt, binary_propagation
+from outline_relief import outline_relief, clean_support
 from online_ai import ConfigStore, OnlineEngine, OnlineConfig, PROVIDERS
 
 ROOT = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
 MODEL = ROOT / 'assets' / 'depth_anything_v2_small.onnx'
-VERSION = '1.4.0'
+VERSION = '1.5.0'
 MAX_PIXELS = 300_000_000
 WORK_EDGE = 2048
 Image.MAX_IMAGE_PIXELS = None  # Selected local files are checked explicitly before decoding.
-MODES = ['AI — shape and depth', 'Brightness — graphic relief', 'Existing heightmap — no AI']
+MODES = ['AI — shape and depth', 'Brightness — graphic relief', 'Existing heightmap — no AI', 'Illustration — outline relief']
 
 
 @dataclass
@@ -37,6 +38,7 @@ class Settings:
     invert: bool = False
     white_bg: bool = False
     threshold: float = 240.0
+    outline_threshold: float = 70.0
 
 
 def source_metadata(path):
@@ -138,6 +140,8 @@ def source_mask(im, settings):
 
 def compose(raw, im, settings, mode, gray=None, manual_mask=None):
     mask = source_mask(im, settings)
+    if mode == 3:
+        mask = clean_support(mask)
     if mode == 0:
         height = normalize_depth(raw, mask)
     else:
@@ -428,6 +432,9 @@ class Application:
         self.variables['threshold'] = tk.DoubleVar(value=240)
         ttk.Spinbox(opts, from_=180, to=255, width=5, textvariable=self.variables['threshold'], command=self.schedule_preview).pack(side='left')
         self.variables['threshold'].trace_add('write', lambda *a: self.schedule_preview())
+        ttk.Label(opts, text='  Outline threshold (Generate):').pack(side='left')
+        self.variables['outline_threshold'] = tk.DoubleVar(value=70)
+        ttk.Spinbox(opts, from_=10, to=220, width=5, textvariable=self.variables['outline_threshold']).pack(side='left')
         self.relief = tk.BooleanVar(value=False)
         ttk.Checkbutton(opts, text='Shaded preview', variable=self.relief, command=self.schedule_preview).pack(side='right')
         foot = ttk.Frame(root, padding=(20, 4, 20, 10)); foot.pack(fill='x')
@@ -717,7 +724,9 @@ class Application:
             self.status.set('Uploading resized image to '+config.provider+'… Waiting for the selected service.')
             self.background(lambda:self.online_engine.estimate(im,config),'generated')
         else:
-            self.background(lambda: self.engine.estimate(im) if mode == 0 else gray.copy(), 'generated')
+            settings = self.get_settings()
+            self.background(lambda: self.engine.estimate(im) if mode == 0 else
+                            outline_relief(im, source_mask(im, settings), threshold=settings.outline_threshold)[0] if mode == 3 else gray.copy(), 'generated')
 
     def poll(self):
         from tkinter import messagebox
@@ -792,7 +801,9 @@ class Application:
             self.draw(self.map_canvas, None); return
         try:
             settings = self.get_settings()
-            small = self.image.copy(); small.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
+            small = self.image.copy()
+            if self.active_mode != 3:
+                small.thumbnail((1200, 1200), Image.Resampling.LANCZOS)
             raw = np.asarray(Image.fromarray(self.raw).resize(small.size, Image.Resampling.BICUBIC))
             gray = np.asarray(Image.fromarray(self.gray).resize(small.size, Image.Resampling.BICUBIC))
             manual = self.manual_mask.resize(small.size, Image.Resampling.NEAREST) if self.manual_mask is not None else None
@@ -848,6 +859,8 @@ class Application:
         messagebox.showinfo('Heightmap Studio — help',
             '1. Load an image — a heightmap is generated automatically.\n'
             '2. Adjust shape, smoothing and detail; white = highest.\n'
+            'Illustration mode inflates closed areas between dark outlines.\n'
+            'For opaque backgrounds: remove background, then click Generate again.\n'
             '3. Export PNG. Original dimensions and proportions are preserved.\n\n'
             'Choose AI service or open Settings / accounts to enter your own API keys.\n'
             'Online uploads happen only when Generate is clicked; free services have quotas.\n'
@@ -879,11 +892,26 @@ class Application:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--self-test', nargs=2, metavar=('SOURCE', 'OUTPUT_DIR'))
+    parser.add_argument('--outline-test', nargs=2, metavar=('SOURCE', 'OUTPUT_DIR'))
     parser.add_argument('--ui-test', nargs=2, metavar=('SOURCE', 'SCREENSHOT'))
     parser.add_argument('--online-test', metavar='OUTPUT_DIR')
     parser.add_argument('--settings-test', metavar='SCREENSHOT')
     parser.add_argument('--zoom-test',nargs=2,metavar=('SOURCE','SCREENSHOT'))
     args = parser.parse_args()
+    if args.outline_test:
+        source, destination = args.outline_test
+        destination = Path(destination); destination.mkdir(parents=True, exist_ok=True)
+        im, gray, dpi = read_source(source)
+        raw, mask, info = outline_relief(im)
+        height, mask = compose(raw, im, Settings(smooth=0), 3, gray)
+        size = source_metadata(source)
+        for bits in (8, 16):
+            export_native(destination / f'outline_{bits}bit.png', height, mask, source, size, bits, dpi=dpi)
+        export_native(destination / 'outline_alpha.png', height, mask, source, size, 8, True, dpi)
+        info.update(version=VERSION, size=size, working_size=im.size,
+                    zero_background=bool(np.all(height[mask == 0] == 0)))
+        (destination / 'outline_test.json').write_text(json.dumps(info, indent=2), encoding='utf-8')
+        return
     if args.online_test:
         destination=Path(args.online_test); destination.mkdir(parents=True,exist_ok=True)
         started=time.monotonic()
@@ -992,7 +1020,7 @@ if __name__ == '__main__':
         log = Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'HeightmapStudio'
         log.mkdir(parents=True, exist_ok=True)
         (log / 'error.log').write_text(traceback.format_exc(), encoding='utf-8')
-        if any(flag in sys.argv for flag in ('--self-test','--online-test','--ui-test','--settings-test','--zoom-test')):
+        if any(flag in sys.argv for flag in ('--self-test','--outline-test','--online-test','--ui-test','--settings-test','--zoom-test')):
             sys.exit(1)
         import tkinter.messagebox
         tkinter.messagebox.showerror('Heightmap Studio', f'The application could not start. Details:\n{log / "error.log"}')

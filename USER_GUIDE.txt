@@ -1,4 +1,4 @@
-HEIGHTMAP STUDIO 1.4 — Windows x64 — single-file application with offline and online AI
+HEIGHTMAP STUDIO 1.5 — Windows x64 — single-file application with offline and online AI
 
 Run HeightmapStudio.exe. Python, required libraries and the depth model are bundled.
 No Python installation is required. Offline mode needs no internet or account.
@@ -78,6 +78,17 @@ QUICK START
    Clear manual mask resets all manual strokes. The source file is never modified.
    Restore mask does not override automatic background removal or original alpha.
 5. Adjust shape and smoothing. Export PNG at original image dimensions.
+
+ILLUSTRATION MODE — GENERAL SOURCE-BASED RELIEF
+Choose Illustration — outline relief for drawings with dark outlines.
+Closed light regions are inflated independently; dark lines form shallow grooves.
+No example-specific shapes or coordinates are used. Adjust Outline threshold (Generate)
+and click Generate again. Enable light-background removal before generating if needed.
+The original color/source file is unchanged. The mode removes near-transparent dust
+and very small isolated alpha islands, while keeping real detached regions.
+Broken outlines may join regions; dark fills may become broad grooves. This method
+cannot guarantee semantic part separation for arbitrary artwork. Use AI for photos
+or artwork without clear dark outlines. Working-resolution and memory limits still apply.
 
 MODES
 AI — shape and depth: Depth Anything V2 Small estimates relative shape locally on CPU.

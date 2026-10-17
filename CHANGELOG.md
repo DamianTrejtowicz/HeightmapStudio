@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.0
+
+- Added general outline-based illustration relief, using connected regions and independent distance-based inflation without manually positioned shapes.
+- Added an adjustable dark-outline threshold and shallow line grooves.
+- Removed near-transparent dust and tiny detached mask islands in illustration mode; silhouette bevels use alpha >127.
+- Kept illustration segmentation stable when resizing previews.
+- Added synthetic regression fixtures for translation, rotation, different dimensions, line thresholds and masks.
+
 ## 1.4.0
 
 - Added source zoom at the cursor, Fit / 100% controls and drag-to-pan.

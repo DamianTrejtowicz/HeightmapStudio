@@ -7,7 +7,7 @@ A Windows desktop tool for creating grayscale heightmaps from images, with offli
 ## Features
 
 - Offline CPU depth estimation using bundled Depth Anything V2 Small.
-- AI depth, brightness relief and existing-heightmap modes.
+- AI depth, brightness relief, existing-heightmap and outline-based illustration modes.
 - Source and heightmap previews; gamma, smoothing, height range, silhouette and detail controls.
 - Automatic light-background removal and manual erase/restore brushes with undo.
 - Cursor-centered zoom, Fit, 100% native-pixel view and drag-to-pan for accurate masking.
@@ -18,7 +18,7 @@ A Windows desktop tool for creating grayscale heightmaps from images, with offli
 
 ## Run the application
 
-Download `HeightmapStudio_v1.4.exe` from [Releases](https://github.com/DamianTrejtowicz/HeightmapStudio/releases), then open it on Windows x64. Python and the offline model are included. The executable extracts its bundled components into a temporary folder at startup. It is not code-signed.
+Download `HeightmapStudio_v1.5.exe` from [Releases](https://github.com/DamianTrejtowicz/HeightmapStudio/releases), then open it on Windows x64. Python and the offline model are included. The executable extracts its bundled components into a temporary folder at startup. It is not code-signed.
 
 1. Click **Load image** and choose an image.
 2. Choose a processing mode and compare the previews. White means highest; black means zero height.
@@ -26,6 +26,16 @@ Download `HeightmapStudio_v1.4.exe` from [Releases](https://github.com/DamianTre
 4. Adjust the height controls and click **Export PNG**.
 
 The original image is never modified. Manual strokes are stored in original-pixel coordinates and applied at full export resolution. The smaller heightmap preview may not display the finest erased details.
+
+## Illustration mode: any source, no hand-placed shapes
+
+Choose **Illustration — outline relief** for line art, cartoons, logos or technical drawings with dark outlines. The algorithm analyzes the loaded pixels; it contains no anatomical coordinates or example-specific templates. Dark lines separate connected light regions, each region is inflated independently using a distance transform, and a shared smoothed field with shallow grooves joins the result. Small detached parts can rise independently of large regions.
+
+Use **Outline threshold (Generate)** to adjust dark-line detection, then click **Generate heightmap** again. For a light opaque background, enable **Remove light background** before generating. Transparent inputs use their alpha. Manual erase/restore still clips the output in every mode. Near-transparent dust and tiny isolated alpha components are removed only in illustration mode; the source image is never altered.
+
+This is a general method, not a guarantee that every drawing separates correctly. Broken outlines can merge regions, dark fills can become broad grooves, and color boundaries without dark lines do not necessarily split parts. Photos or soft paintings usually suit the AI mode better. Sources without a useful silhouette need background removal. The app does not identify semantic objects such as fingers or armor plates.
+
+The illustration preview uses the same working-resolution field as export, so resizing the window does not change region detection. Original sources up to 2048 px on the long edge are processed at native resolution. Larger sources use the working copy; exported pixels are aligned to the source canvas, but upscaling cannot reconstruct native boundary detail or geometry. Manual masks still export at native resolution.
 
 ## Online services and privacy
 
@@ -66,6 +76,7 @@ Output: `dist/HeightmapStudio.exe`. The build script downloads a pinned ~99 MB m
 Run from the project folder on Windows with a desktop session:
 
 ```powershell
+.\.venv\Scripts\python.exe test_outline.py
 .\.venv\Scripts\python.exe test_core.py
 .\.venv\Scripts\python.exe test_zoom.py
 .\.venv\Scripts\python.exe test_online.py
@@ -73,7 +84,7 @@ Run from the project folder on Windows with a desktop session:
 
 These cover PNG precision, transparency, background removal, native-pixel masking, zoom/pan/undo, encrypted settings, and mocked online request/response contracts. Generated fixtures and reports go into ignored `.test-output/` folders. The online regression suite does not make paid API calls.
 
-The v1.4 executable was also checked with local model inference and a 7016 × 9921 px A3 image, including a one-pixel erase at 400% zoom and full-size export. A live anonymous Hugging Face request passed during v1.3 validation. OpenAI and Gemini were tested with simulated responses; live paid account access was not tested.
+The previous v1.4 executable was also checked with local model inference and a 7016 × 9921 px A3 image, including a one-pixel erase at 400% zoom and full-size export. A live anonymous Hugging Face request passed during v1.3 validation. OpenAI and Gemini were tested with simulated responses; live paid account access was not tested.
 
 ## Model and dependencies
 
